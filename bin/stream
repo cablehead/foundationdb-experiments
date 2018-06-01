@@ -3,8 +3,8 @@
 
 """
 Usage:
-    {name} put
-    {name} cat
+    {name} <name> put
+    {name} <name> cat
 """
 
 
@@ -139,34 +139,36 @@ class Stream():
         rng = self.space.range()
         rng = db.get_range(rng.start, rng.stop)
         for x in rng:
-            stamp, offset = self.space.unpack(x.key)
+            *rest, stamp, offset = self.space.unpack(x.key)
             stamp = struct.unpack('Q', stamp)
-            yield stamp, offset, x.value
+            yield rest, stamp, offset, x.value
 
     def range(self, db):
         rng = self.__range(db)
-        stamp, offset, value = next(rng)
+        rest, stamp, offset, value = next(rng)
         assert offset == 0
-        for check, offset, add in rng:
-            if offset == 0:
-                yield stamp, value
-                stamp = check
-                value = add
+        for nxt_rest, nxt_stamp, nxt_offset, nxt_value in rng:
+            if nxt_offset == 0:
+                yield rest, stamp, value
+                rest = nxt_rest
+                stamp = nxt_stamp
+                value = nxt_value
             else:
-                assert check == stamp
-                value += add
-        yield stamp, value
+                assert nxt_stamp == stamp
+                value += nxt_value
+        yield rest, stamp, value
 
 
 def main(a):
-    s = Stream('nasdaq', 'tsla')
+    print(a['<name>'].split('.'))
+    s = Stream(*a['<name>'].split('.'))
 
     if a['put']:
         return print(s.put(db, sys.stdin.buffer))
 
     if a['cat']:
-        for key, value in s.range(db):
-            print(key, len(value))
+        for rest, key, value in s.range(db):
+            print(rest, key, len(value))
 
 
 if __name__ == '__main__':
