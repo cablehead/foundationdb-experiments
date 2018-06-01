@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+
+
+"""
+Usage:
+    {name} put
+    {name} cat
+"""
+
+import struct
+import sys
+
+import fdb
+
+from docopt import docopt
+
+import fity3
+
+f3 = fity3.generator(1)
+
+fdb.api_version(510)
+db = fdb.open()
+
+
+class Stream():
+    def __init__(self, *a):
+        self.space = fdb.Subspace(a)
+
+    @fdb.transactional
+    def put(self, tr, reader):
+        n = next(f3)
+        b = struct.pack('Q', n)
+        offset = 0
+        while True:
+            value = sys.stdin.buffer.read(10000)
+            if not value:
+                break
+            key = self.space.pack((b, offset))
+            tr.set(key, value)
+            offset += 1
+        return True
+
+    def __range(self, db):
+        rng = self.space.range()
+        rng = db.get_range(rng.start, rng.stop)
+        for x in rng:
+            stamp, offset = self.space.unpack(x.key)
+            stamp = struct.unpack('Q', stamp)
+            yield stamp, offset, x.value
+
+    def range(self, db):
+        rng = self.__range(db)
+        stamp, offset, value = next(rng)
+        assert offset == 0
+        for check, offset, add in rng:
+            if offset == 0:
+                yield stamp, value
+                stamp = check
+                value = add
+            else:
+                assert check == stamp
+                value += add
+        yield stamp, value
+
+
+def main(a):
+    s = Stream('nasdaq', 'tsla')
+
+    if a['put']:
+        return print(s.put(db, sys.stdin.buffer))
+
+    if a['cat']:
+        for key, value in s.range(db):
+            print(key, len(value))
+
+
+if __name__ == '__main__':
+    usage = ' '.join([x.strip() for x in __doc__.split('\\')])
+    usage = usage.format(name=sys.argv[0])
+    a = docopt(usage)
+    sys.exit(main(a))
