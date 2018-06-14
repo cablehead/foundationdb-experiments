@@ -160,7 +160,6 @@ class Stream():
 
 
 def main(a):
-    print(a['<name>'].split('.'))
     s = Stream(*a['<name>'].split('.'))
 
     if a['put']:
@@ -168,7 +167,8 @@ def main(a):
 
     if a['cat']:
         for rest, key, value in s.range(db):
-            print(rest, key, len(value))
+            sys.stdout.buffer.write(value)
+            break
 
 
 if __name__ == '__main__':
