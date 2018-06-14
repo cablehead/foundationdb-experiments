@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+
+import sys
+
+import fdb
+
+
+fdb.api_version(510)
+db = fdb.open()
+
+
+def main():
+    for item in db.get_range(b'\x00', b'\xFF'):
+        try:
+            print(fdb.tuple.unpack(item.key))
+        except Exception:
+            print(item.key)
+
+
+if __name__ == '__main__':
+    sys.exit(main())
