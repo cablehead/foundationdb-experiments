@@ -54,12 +54,10 @@ class Stream:
         return True
 
     def range(self, db):
-        ret = []
         for x in db[self.d['i'].range()]:
             key = self.d['i'].unpack(x.key)[0]
             stamp = struct.unpack('Q', key)
-            ret.append(Item(stamp, x.value))
-        return ret
+            yield Item(stamp, x.value)
 
     @fdb.transactional
     def count(self, tr):
