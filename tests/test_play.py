@@ -30,3 +30,8 @@ def test_stream(db, stream):
     stream.put(db, b'bar')
     assert stream.count(db) == 2
     assert [x.value for x in stream.range(db)] == [b'foo', b'bar']
+
+    val = ''.join([str(i) for i in range(20000)]).encode('utf-8')
+    stream.put(db, val)
+    assert stream.count(db) == 3
+    assert [x.value for x in stream.range(db)] == [b'foo', b'bar', val]

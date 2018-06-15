@@ -37,27 +37,28 @@ class Stream:
         b = struct.pack('>Q', n)
 
         val = reader.read(10000)
-        assert len(val) < 10000
 
-        tr.set(self.d['i'][b].key(), val)
+        if len(val) < 10000:
+            tr.set(self.d['i'][b].key(), val)
+            return
 
-        return
+        tr.set(self.d['i'][b].key(), b'')
 
         offset = 0
-        while True:
-            value = reader.read(10000)
-            if not value:
-                break
-            key = self.space.pack((b, offset))
-            tr.set(key, value)
+        while val:
+            tr.set(self.d['b'][b][offset].key(), val)
             offset += 1
-        return True
+            val = reader.read(10000)
 
     def range(self, db):
         for x in db[self.d['i'].range()]:
             key = self.d['i'].unpack(x.key)[0]
             stamp = struct.unpack('>Q', key)[0]
-            yield Item(stamp, x.value)
+            value = x.value
+            if not value:
+                for part in db[self.d['b'][key].range()]:
+                    value += part.value
+            yield Item(stamp, value)
 
     @fdb.transactional
     def count(self, tr):
