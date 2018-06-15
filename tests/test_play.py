@@ -21,7 +21,7 @@ def stream(db):
     fdb.directory.remove(db, name)
 
 
-def test_put_small(db, stream):
+def test_stream(db, stream):
     assert stream.count(db) == 0
     stream.put(db, b'foo')
     assert stream.count(db) == 1

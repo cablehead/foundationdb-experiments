@@ -34,7 +34,7 @@ class Stream:
         tr.add(self.d['count'].key(), b'\x01')
 
         n = next(self.seq)
-        b = struct.pack('Q', n)
+        b = struct.pack('>Q', n)
 
         val = reader.read(10000)
         assert len(val) < 10000
@@ -56,7 +56,7 @@ class Stream:
     def range(self, db):
         for x in db[self.d['i'].range()]:
             key = self.d['i'].unpack(x.key)[0]
-            stamp = struct.unpack('Q', key)
+            stamp = struct.unpack('>Q', key)[0]
             yield Item(stamp, x.value)
 
     @fdb.transactional
