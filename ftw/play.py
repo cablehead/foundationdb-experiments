@@ -26,6 +26,12 @@ class Stream:
         tr[d['count'].key()] = b'\x00'
         return d
 
+    def set(self, db, key, value):
+        db.set(self.d['a'][key], value)
+
+    def get(self, db, key):
+        return db.get(self.d['a'][key])
+
     @fdb.transactional
     def put(self, tr, reader):
         if not hasattr(reader, 'read'):

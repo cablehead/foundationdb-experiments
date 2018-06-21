@@ -35,3 +35,8 @@ def test_stream(db, stream):
     stream.put(db, val)
     assert stream.count(db) == 3
     assert [x.value for x in stream.range(db)] == [b'foo', b'bar', val]
+
+
+def test_set_get(db, stream):
+    stream.set(db, b'foo', b'bar')
+    assert stream.get(db, b'foo') == b'bar'
