@@ -1,7 +1,7 @@
 from ftw import bucket
 
 
-def test_bucket(db, space, seq):
+def test_bucket(db, space):
     b = bucket.Bucket(space['user_item'])
 
     b.put(db, b'user1', b'item1', b'bag')
