@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+
+
+"""
+Usage:
+    {name} <path> stream <name> put
+    {name} <path> stream <name> cat
+"""
+
+
+import sys
+
+import fity3
+
+from docopt import docopt
+
+from ftw import play
+
+import fdb
+fdb.api_version(510)
+
+
+def main(a):
+    f3 = fity3.generator(1)
+    db = fdb.open()
+
+    space = fdb.directory.create_or_open(db, tuple(a['<path>'].split('.')))
+    print(space)
+
+    if a['stream']:
+        s = play.Stream(db, f3, space[a['<name>']])
+        if a['put']:
+            return s.put(db, sys.stdin.buffer)
+        if a['cat']:
+            for x in s.range(db):
+                print(x)
+
+
+if __name__ == '__main__':
+    usage = ' '.join([x.strip() for x in __doc__.split('\\')])
+    usage = usage.format(name=sys.argv[0])
+    a = docopt(usage)
+    sys.exit(main(a))
