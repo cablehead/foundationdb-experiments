@@ -10,31 +10,26 @@ Item = collections.namedtuple('Item', ['key', 'value'])
 
 
 class Stream:
-    def __init__(self, seq, db, name):
-        self.seq = seq
-        try:
-            self.d = fdb.directory.open(db, name)
-        except ValueError:
-            self.d = self.create(db, name)
-
     @fdb.transactional
-    def create(self, tr, name):
-        d = fdb.directory.create(tr, name)
-        tr[d['count'].key()] = b'\x00'
-        return d
+    def __init__(self, tr, seq, space):
+        self.seq = seq
+        self.space = space
+        count = tr.get(self.space['count'])
+        if not count.present():
+            tr.set(self.space['count'], b'\x00')
 
     def set(self, db, key, value):
-        db.set(self.d['a'][key], value)
+        db.set(self.space['a'][key], value)
 
     def get(self, db, key):
-        return db.get(self.d['a'][key])
+        return db.get(self.space['a'][key])
 
     @fdb.transactional
     def put(self, tr, reader):
         if not hasattr(reader, 'read'):
             reader = io.BytesIO(reader)
 
-        tr.add(self.d['count'].key(), b'\x01')
+        tr.add(self.space['count'].key(), b'\x01')
 
         n = next(self.seq)
         b = struct.pack('>Q', n)
@@ -42,28 +37,27 @@ class Stream:
         val = reader.read(10000)
 
         if len(val) < 10000:
-            tr.set(self.d['i'][b].key(), val)
+            tr.set(self.space['i'][b].key(), val)
             return
 
-        tr.set(self.d['i'][b].key(), b'')
+        tr.set(self.space['i'][b].key(), b'')
 
         offset = 0
         while val:
-            tr.set(self.d['b'][b][offset].key(), val)
+            tr.set(self.space['b'][b][offset].key(), val)
             offset += 1
             val = reader.read(10000)
 
     def range(self, db):
-        for x in db[self.d['i'].range()]:
-            key = self.d['i'].unpack(x.key)[0]
+        for x in db[self.space['i'].range()]:
+            key = self.space['i'].unpack(x.key)[0]
             stamp = struct.unpack('>Q', key)[0]
             value = x.value
             if not value:
-                for part in db[self.d['b'][key].range()]:
+                for part in db[self.space['b'][key].range()]:
                     value += part.value
             yield Item(stamp, value)
 
-    @fdb.transactional
-    def count(self, tr):
-        return int.from_bytes(
-            tr[self.d['count'].key()], byteorder='little')
+    def count(self, db):
+        val = db.get(self.space['count'])
+        return int.from_bytes(val, byteorder='little')

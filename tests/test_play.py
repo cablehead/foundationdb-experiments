@@ -1,32 +1,17 @@
-import pytest
-
-import fity3
-
 from ftw import play
 
 import fdb
 fdb.api_version(510)
 
 
-@pytest.fixture
-def db():
-    return fdb.open()
-
-
-@pytest.fixture
-def stream(db):
-    f3 = fity3.generator(1)
-    name = (str(next(f3)),)
-    yield play.Stream(f3, db, name)
-    fdb.directory.remove(db, name)
-
-
-def test_stream(db, stream):
+def test_stream(db, space, seq):
+    stream = play.Stream(db, seq, space['stream'])
     assert stream.count(db) == 0
     stream.put(db, b'foo')
     assert stream.count(db) == 1
     assert [x.value for x in stream.range(db)] == [b'foo']
 
+    stream = play.Stream(db, seq, space['stream'])
     stream.put(db, b'bar')
     assert stream.count(db) == 2
     assert [x.value for x in stream.range(db)] == [b'foo', b'bar']
@@ -37,6 +22,7 @@ def test_stream(db, stream):
     assert [x.value for x in stream.range(db)] == [b'foo', b'bar', val]
 
 
-def test_set_get(db, stream):
+def test_set_get(db, space, seq):
+    stream = play.Stream(db, seq, space['stream'])
     stream.set(db, b'foo', b'bar')
     assert stream.get(db, b'foo') == b'bar'
