@@ -3,14 +3,16 @@
 
 """
 Usage:
-    {name} <path> ls
+    {name} <path> run
     {name} <path> add -t <trigger> <command> <descrption>
 """
 
 
 import struct
 import json
+import time
 import sys
+import os
 
 import fity3
 
@@ -44,16 +46,23 @@ def main(a):
     if a['add']:
         return add(db, b, a['<trigger>'], a['<command>'], a['<descrption>'])
 
-    print(b.get(db, b'command'))
+    if a['run']:
+        for command in b.get(db, b'command'):
+            data = json.loads(command.value)
+            typ, value = data['trigger'].split(':')
+            assert typ == 'time'
+            value = ftw.human.convert_to_seconds(value)
+            print(data['descrption'])
+            while True:
+                time.sleep(value)
+                os.system(data['command'])
+
     return
 
     if a['stream']:
         s = play.Stream(db, space[a['<name>']])
         if a['put']:
             return s.put(db, sys.stdin.buffer)
-        if a['get']:
-            for x in s.range(db):
-                print(x)
 
 
 if __name__ == '__main__':
