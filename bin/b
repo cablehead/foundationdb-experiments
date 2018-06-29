@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+
+
+"""
+Usage:
+    {name} <path> ls
+    {name} <path> add -t <trigger> <command> <descrption>
+"""
+
+
+import struct
+import json
+import sys
+
+import fity3
+
+from docopt import docopt
+
+import ftw
+from ftw import play
+
+import fdb
+fdb.api_version(510)
+
+
+f3 = fity3.generator(1)
+
+
+@fdb.transactional
+def add(tr, b, trigger, command, descrption):
+    b.put(tr, b'command', struct.pack('>Q', next(f3)), json.dumps({
+        'trigger': trigger,
+        'command': command,
+        'descrption': descrption, }).encode())
+
+
+def main(a):
+    db = fdb.open()
+
+    space = fdb.directory.create_or_open(db, tuple(a['<path>'].split('.')))
+
+    b = ftw.bucket.Bucket(space['__meta'])
+
+    if a['add']:
+        return add(db, b, a['<trigger>'], a['<command>'], a['<descrption>'])
+
+    print(b.get(db, b'command'))
+    return
+
+    if a['stream']:
+        s = play.Stream(db, space[a['<name>']])
+        if a['put']:
+            return s.put(db, sys.stdin.buffer)
+        if a['get']:
+            for x in s.range(db):
+                print(x)
+
+
+if __name__ == '__main__':
+    usage = ' '.join([x.strip() for x in __doc__.split('\\')])
+    usage = usage.format(name=sys.argv[0])
+    a = docopt(usage)
+    sys.exit(main(a))
