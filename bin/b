@@ -6,6 +6,7 @@ Usage:
     {name} <path> ls
     {name} <path> run
     {name} <path> add -t <trigger> <command> <descrption>
+    {name} <path> last <commandid>
 """
 
 
@@ -59,6 +60,11 @@ def main(a):
                 stream.count(db),
                 stream.last(db).datetime.isoformat(),
                 )
+        return
+
+    if a['last']:
+        stream = ftw.play.Stream(db, f3, space[int(a['<commandid>'])])
+        sys.stdout.buffer.write(stream.last(db).value)
         return
 
     if a['add']:
