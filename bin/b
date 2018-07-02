@@ -50,7 +50,13 @@ def main(a):
         for command in b.get(db, b'command'):
             cid, = struct.unpack('>Q', command.item)
             data = json.loads(command.value)
-            print(cid, data['trigger'], data['descrption'], data['command'])
+            stream = ftw.play.Stream(db, f3, space[cid])
+            print(
+                cid,
+                data['trigger'],
+                data['descrption'],
+                data['command'],
+                stream.count(db))
         return
 
     if a['add']:
