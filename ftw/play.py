@@ -48,15 +48,26 @@ class Stream:
             offset += 1
             val = reader.read(10000)
 
+    def last(self, db):
+        rng = self.space['i'].range()
+        res = db.get_range(rng.start, rng.stop, reverse=True, limit=1)
+        if not res:
+            return
+        return self.unpack(db, res[0])
+
+    def unpack(self, db, item):
+        # TODO: this should stream out large values
+        key = self.space['i'].unpack(item.key)[0]
+        stamp = struct.unpack('>Q', key)[0]
+        value = item.value
+        if not value:
+            for part in db[self.space['b'][key].range()]:
+                value += part.value
+        return Item(stamp, value)
+
     def range(self, db):
         for x in db[self.space['i'].range()]:
-            key = self.space['i'].unpack(x.key)[0]
-            stamp = struct.unpack('>Q', key)[0]
-            value = x.value
-            if not value:
-                for part in db[self.space['b'][key].range()]:
-                    value += part.value
-            yield Item(stamp, value)
+            yield self.unpack(db, x)
 
     def count(self, db):
         val = db.get(self.space['count'])
