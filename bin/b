@@ -3,12 +3,15 @@
 
 """
 Usage:
+    {name} <path> ls
     {name} <path> run
     {name} <path> add -t <trigger> <command> <descrption>
 """
 
 
+import subprocess
 import struct
+import shlex
 import json
 import time
 import sys
@@ -43,20 +46,35 @@ def main(a):
 
     b = ftw.bucket.Bucket(space['__meta'])
 
+    if a['ls']:
+        for command in b.get(db, b'command'):
+            cid, = struct.unpack('>Q', command.item)
+            data = json.loads(command.value)
+            print(cid, data['trigger'], data['descrption'], data['command'])
+        return
+
     if a['add']:
         return add(db, b, a['<trigger>'], a['<command>'], a['<descrption>'])
 
     if a['run']:
         for command in b.get(db, b'command'):
+            cid, = struct.unpack('>Q', command.item)
             data = json.loads(command.value)
+
             typ, value = data['trigger'].split(':')
             assert typ == 'time'
             value = ftw.human.convert_to_seconds(value)
+
             print(data['descrption'])
+            stream = ftw.play.Stream(db, f3, space[cid])
             while True:
                 time.sleep(value)
-                os.system(data['command'])
-
+                start = time.time()
+                print(data['command'], end=' ')
+                args = shlex.split(data['command'])
+                p = subprocess.Popen(args, stdout=subprocess.PIPE)
+                stream.put(db, p.stdout)
+                print('took={}ms status={}'.format(round((time.time()-start)*1000), p.wait()))
     return
 
     if a['stream']:
