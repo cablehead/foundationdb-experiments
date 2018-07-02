@@ -1,12 +1,25 @@
 import collections
+import datetime
 import struct
 import io
+
+import fity3
 
 import fdb
 fdb.api_version(510)
 
 
 Item = collections.namedtuple('Item', ['key', 'value'])
+
+
+class Item(Item):
+    @property
+    def timestamp(self):
+        return fity3.to_timestamp(self.key)
+
+    @property
+    def datetime(self):
+        return datetime.datetime.fromtimestamp(self.timestamp)
 
 
 class Stream:

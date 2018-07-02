@@ -56,7 +56,9 @@ def main(a):
                 data['trigger'],
                 data['descrption'],
                 data['command'],
-                stream.count(db))
+                stream.count(db),
+                stream.last(db).datetime.isoformat(),
+                )
         return
 
     if a['add']:
