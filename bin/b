@@ -7,6 +7,7 @@ Usage:
     {name} <path> run
     {name} <path> add -t <trigger> <command> <descrption>
     {name} <path> last <commandid>
+    {name} <path> each <commandid> -- <command>...
 """
 
 
@@ -65,6 +66,15 @@ def main(a):
     if a['last']:
         stream = ftw.play.Stream(db, f3, space[int(a['<commandid>'])])
         sys.stdout.buffer.write(stream.last(db).value)
+        return
+
+    if a['each']:
+        stream = ftw.play.Stream(db, f3, space[int(a['<commandid>'])])
+        for item in stream.range(db):
+            p = subprocess.Popen(a['<command>'], stdin=subprocess.PIPE)
+            p.stdin.write(item.value)
+            p.stdin.close()
+            p.wait()
         return
 
     if a['add']:
