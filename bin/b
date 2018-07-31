@@ -53,13 +53,15 @@ def main(a):
             cid, = struct.unpack('>Q', command.item)
             data = json.loads(command.value)
             stream = ftw.play.Stream(db, f3, space[cid])
+            last = stream.last(db)
+            last = last and last.datetime.isoformat() or 'never run'
             print(
                 cid,
                 data['trigger'],
                 data['descrption'],
                 data['command'],
                 stream.count(db),
-                stream.last(db).datetime.isoformat(),
+                last,
                 )
         return
 
