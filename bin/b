@@ -19,6 +19,9 @@ import time
 import sys
 import os
 
+
+from datetime import datetime
+
 import fity3
 
 from docopt import docopt
@@ -54,6 +57,9 @@ def main(a):
             data = json.loads(command.value)
             stream = ftw.play.Stream(db, f3, space[cid])
             last = stream.last(db)
+            ago = ''
+            if last:
+                ago = ftw.human.humanize_time((datetime.now() - last.datetime).total_seconds())
             last = last and last.datetime.isoformat() or 'never run'
             print(
                 cid,
@@ -62,6 +68,7 @@ def main(a):
                 data['command'],
                 stream.count(db),
                 last,
+                ago,
                 )
         return
 
