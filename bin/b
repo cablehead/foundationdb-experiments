@@ -17,10 +17,10 @@ import shlex
 import json
 import time
 import sys
-import os
 
 
 from datetime import datetime
+from datetime import timedelta
 
 import fity3
 
@@ -44,6 +44,30 @@ def add(tr, b, trigger, command, descrption):
         'descrption': descrption, }).encode())
 
 
+def run_once(db, b, space):
+    for command in b.get(db, b'command'):
+        cid, = struct.unpack('>Q', command.item)
+        data = json.loads(command.value)
+
+        typ, value = data['trigger'].split(':')
+        assert typ == 'time'
+        value = ftw.human.convert_to_seconds(value)
+        value = timedelta(seconds=value)
+
+        stream = ftw.play.Stream(db, f3, space[cid])
+        last_ran = datetime.now() - stream.last(db).datetime
+
+        if last_ran > value:
+            print(data['descrption'])
+            start = time.time()
+            print(data['command'], end=' ')
+            args = shlex.split(data['command'][0])
+            p = subprocess.Popen(args, stdout=subprocess.PIPE)
+            stream.put(db, p.stdout)
+            print('took={}ms status={}'.format(
+                round((time.time()-start)*1000), p.wait()))
+
+
 def main(a):
     db = fdb.open()
 
@@ -59,7 +83,8 @@ def main(a):
             last = stream.last(db)
             ago = ''
             if last:
-                ago = ftw.human.humanize_time((datetime.now() - last.datetime).total_seconds())
+                ago = ftw.human.humanize_time(
+                    (datetime.now() - last.datetime).total_seconds())
             last = last and last.datetime.isoformat() or 'never run'
             print(
                 cid,
@@ -90,24 +115,9 @@ def main(a):
         return add(db, b, a['<trigger>'], a['<command>'], a['<descrption>'])
 
     if a['run']:
-        for command in b.get(db, b'command'):
-            cid, = struct.unpack('>Q', command.item)
-            data = json.loads(command.value)
-
-            typ, value = data['trigger'].split(':')
-            assert typ == 'time'
-            value = ftw.human.convert_to_seconds(value)
-
-            print(data['descrption'])
-            stream = ftw.play.Stream(db, f3, space[cid])
-            while True:
-                time.sleep(value)
-                start = time.time()
-                print(data['command'], end=' ')
-                args = shlex.split(data['command'])
-                p = subprocess.Popen(args, stdout=subprocess.PIPE)
-                stream.put(db, p.stdout)
-                print('took={}ms status={}'.format(round((time.time()-start)*1000), p.wait()))
+        while True:
+            run_once(db, b, space)
+            time.sleep(1)
     return
 
     if a['stream']:
