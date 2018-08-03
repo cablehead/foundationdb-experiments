@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+
+
+import fdb
+fdb.api_version(510)
+
+db = fdb.open()
+
+print(fdb.directory.list(db))
